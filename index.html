@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Voicemail Message Quiz — Extended (20 Qs)</title>
+    <style>
+        :root{
+            --bg: #f5f7fb;
+            --card: #ffffff;
+            --primary: #2f80ed;
+            --accent: #3498db;
+            --success: #28a745;
+            --danger: #e74c3c;
+            --muted: #6c757d;
+            --glass: rgba(255,255,255,0.6);
+        }
+        html,body{
+            height:100%;
+            margin:0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, var(--bg) 0%, #eef4fb 100%);
+            color:#222;
+        }
+        .wrap{
+            max-width: 920px;
+            margin: 28px auto;
+            padding: 20px;
+        }
+        header{
+            text-align:center;
+            margin-bottom:12px;
+        }
+        h1{
+            margin:6px 0;
+            font-size:26px;
+            color: #153e6b;
+        }
+        .subtitle{
+            color:var(--muted);
+            margin-top:0;
+        }
+
+        /* Card */
+        .quiz-container{
+            background: linear-gradient(180deg, rgba(255,255,255,0.98), var(--card));
+            border-radius:14px;
+            padding:22px;
+            box-shadow: 0 10px 30px rgba(31,54,80,0.07);
+            overflow: hidden;
+        }
+
+        /* Audio area */
+        .audio-container{
+            display:flex;
+            gap:18px;
+            align-items:center;
+            padding:12px;
+            border-radius:10px;
+            background: linear-gradient(90deg, rgba(52,152,219,0.06), rgba(46,204,113,0.02));
+            margin-bottom:18px;
+            flex-wrap:wrap;
+            justify-content:center;
+        }
+        .audio-container h3{ margin:0; font-size:16px; color:#0b3a66; }
+        audio{ width:100%; max-width:520px; border-radius:8px; outline:none; }
+
+        /* Transcript */
+        .transcript{
+            background:#fbfdff;
+            border-left:6px solid var(--accent);
+            padding:14px;
+            border-radius:8px;
+            margin:14px 0 22px;
+            color:#1f333f;
+            font-size:15px;
+            line-height:1.5;
+        }
+
+        /* Progress */
+        .meta{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:10px;
+            margin-bottom:14px;
+        }
+        .progress-text{ font-weight:600; color:#0a2f4e; }
+        .progress-bar{
+            flex:1;
+            height:10px;
+            background: linear-gradient(90deg,#e9eef6,#eef6fb);
+            border-radius:999px;
+            overflow:hidden;
+            margin-left:12px;
+            box-shadow: inset 0 -1px 0 rgba(0,0,0,0.03);
+        }
+        .progress-fill{
+            height:100%;
+            width:0%;
+            background: linear-gradient(90deg,var(--primary), #6ec1ff);
+            transition: width 450ms ease;
+        }
+
+        /* Question card */
+        .question-container{
+            display:none;
+            opacity:0;
+            transform: translateY(8px);
+            transition: all 350ms ease;
+            will-change:opacity,transform;
+            margin-bottom:10px;
+        }
+        .question-container.visible{
+            display:block;
+            opacity:1;
+            transform: translateY(0);
+        }
+        .question{
+            font-size:18px;
+            font-weight:700;
+            margin-bottom:12px;
+            color:#10304a;
+        }
+        .options{
+            display:flex;
+            flex-direction:column;
+            gap:10px;
+            margin-bottom:10px;
+        }
+        .option{
+            background:#f7f9fc;
+            border-radius:8px;
+            padding:12px 14px;
+            cursor:pointer;
+            transition: all 240ms ease;
+            border:1px solid rgba(10,30,60,0.03);
+        }
+        .option:hover{ transform: translateY(-3px); box-shadow: 0 6px 18px rgba(15,38,70,0.04); }
+        .option.selected{ background:#e6f0ff; border-left:6px solid var(--primary); font-weight:700; }
+        .option.correct-answer{ background:#eafaf0; border-left:6px solid var(--success); color:#145a2d; font-weight:700; }
+        .option.wrong-answer{ background:#fff2f2; border-left:6px solid var(--danger); color:#7b2a2a; text-decoration:line-through; opacity:0.85; }
+
+        .feedback{ margin-top:12px; font-weight:700; font-size:15px; border-radius:8px; padding:10px; display:none; }
+        .feedback.correct{ background: #e9f7ef; color: #155724; border:1px solid rgba(40,167,69,0.08); display:block; }
+        .feedback.incorrect{ background: #fff3f3; color: #7b2a2a; border:1px solid rgba(231,76,60,0.07); display:block; }
+
+        .explanation{ background:#f3f6f9; padding:12px; border-radius:8px; margin-top:10px; display:none; color:#213646; }
+
+        .controls{
+            display:flex;
+            gap:12px;
+            justify-content:center;
+            margin-top:18px;
+            align-items:center;
+            flex-wrap:wrap;
+        }
+        .btn{
+            padding:10px 18px;
+            border-radius:8px;
+            cursor:pointer;
+            border:none;
+            font-weight:700;
+            box-shadow: 0 6px 18px rgba(12,24,48,0.05);
+        }
+        .btn.next{ background:var(--primary); color:white; }
+        .btn.next[disabled]{ opacity:0.55; cursor:not-allowed; transform:none; box-shadow:none; }
+        .btn.restart{ background:#2ecc71; color:white; }
+
+        /* Score container */
+        .score-container{ display:none; text-align:center; padding:18px; }
+        .score-big{ font-size:34px; font-weight:800; color:#153e6b; margin:6px 0; }
+
+        /* responsive */
+        @media (max-width:640px){
+            .wrap{ padding:14px; }
+            .question{ font-size:16px; }
+            audio{ max-width:100%; }
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <header>
+        <h1>Voicemail Message Quiz — Extended</h1>
+        <p class="subtitle">20 questions (A1 → A2). Same audio file reference retained.</p>
+    </header>
+
+    <div class="quiz-container" id="quizCard">
+
+        <!-- Audio -->
+        <div class="audio-container">
+            <div style="min-width:180px; text-align:center;">
+                <h3>Listen to the voicemail</h3>
+                <p style="margin:6px 0; color:var(--muted); font-size:13px">Play the message, then answer each question.</p>
+            </div>
+            <audio controls>
+                <source src="LE_listening_A1_A_voicemail_message.mp3" type="audio/mpeg">
+                Your browser does not support the audio element.
+            </audio>
+        </div>
+
+        <!-- Transcript -->
+        <div class="transcript" id="transcript">
+            <h2 style="margin-top:0; margin-bottom:8px; font-size:16px">Transcript</h2>
+            <p><strong>John:</strong> Hi, this is John. Thanks for calling. I'm not here at the moment, so please leave a message and I'll call you back.</p>
+            <p><strong>Marina:</strong> Hi, John, this is Marina Silva calling from Old Time Toys. Your colleague Alex gave me your phone number. She said you can help me.</p>
+            <p>I need some information on your new products. Could you please call me when you are back in the office? My phone number is 0-2-0-8, 6-5-5-7-6-2-1.</p>
+            <p>Also, can you please email me your new brochure and information about your prices? My email address is Marina, that's M-A-R-I-N-A, dot Silva, S-I-L-V-A, at O-L-D-T-I-M-E hyphen toys dot com.</p>
+            <p>Thanks a lot. I look forward to hearing from you.</p>
+        </div>
+
+        <!-- Progress -->
+        <div class="meta">
+            <div class="progress-text">Question <span id="current-question">1</span> of <span id="total-questions">20</span></div>
+            <div class="progress-bar" aria-hidden="true">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+        </div>
+
+        <!-- QUESTIONS (1–20) -->
+        <!-- The original 5 questions are preserved verbatim, then 15 new ones follow. -->
+        <!-- Q1 -->
+        <div id="question1" class="question-container visible">
+            <div class="question">1. Who gave John's phone number to Marina?</div>
+            <div class="options">
+                <div class="option" onclick="checkAnswer(this, 'a) John', 'b) Alex', 1)">a) John</div>
+                <div class="option" onclick="checkAnswer(this, 'b) Alex', 'b) Alex', 1)">b) Alex</div>
+                <div class="option" onclick="checkAnswer(this, 'c) Marina', 'b) Alex', 1)">c) Marina</div>
+                <div class="option" onclick="checkAnswer(this, 'd) Silva', 'b) Alex', 1)">d) Silva</div>
+            </div>
+            <div id="feedback1" class="feedback"></div>
+            <div id="explanation1" class="explanation">
+                <p><strong>Explanation:</strong> Marina says "Your colleague Alex gave me your phone number." Alex is the person who provided the number.</p>
+            </div>
+        </div>
+
+        <!-- Q2 -->
+        <div id="question2" class="question-container">
+            <div class="question">2. What does Marina want from John?</div>
+            <div class="options">
+                <div class="option" onclick="checkAnswer(this, 'a) A job interview', 'b) Information about new products', 2)">a) A job interview</div>
+                <div class="option" onclick="checkAnswer(this, 'b) Information about new products', 'b) Information about new products', 2)">b) Information about new products</div>
+                <div class="option" onclick="checkAnswer(this, 'c) A meeting with Alex', 'b) Information about new products', 2)">c) A meeting with Alex</div>
+                <div class="option" onclick="checkAnswer(this, 'd) Technical support', 'b) Information about new products', 2)">d) Technical support</div>
+            </div>
+            <div id="feedback2" class="feedback"></div>
+            <div id="explanation2" class="explanation">
+                <p><strong>Explanation:</strong> She asks: "I need some information on your new products."</p>
+            </div>
+        </div>
+
+        <!-- Q3 -->
+        <div id="question3" class="question-container">
+            <div class="question">3. What's Marina's phone number?</div>
+            <div class="options">
+                <div class="option" onclick="checkAnswer(this, 'a) 0208 6557621', 'a) 0208 6557621', 3)">a) 0208 6557621</div>
+                <div class="option" onclick="checkAnswer(this, 'b) 0208 6557261', 'a) 0208 6557621', 3)">b) 0208 6557261</div>
+                <div class="option" onclick="checkAnswer(this, 'c) 0208 5567621', 'a) 0208 6557621', 3)">c) 0208 5567621</div>
+                <div class="option" onclick="checkAnswer(this, 'd) 0208 6575621', 'a) 0208 6557621', 3)">d) 0208 6575621</div>
+            </div>
+            <div id="feedback3" class="feedback"></div>
+            <div id="explanation3" class="explanation">
+                <p><strong>Explanation:</strong> Marina says digits: "0-2-0-8, 6-5-5-7-6-2-1." That becomes 0208 6557621.</p>
+            </div>
+        </div>
+
+        <!-- Q4 -->
+        <div id="question4" class="question-container">
+            <div class="question">4. What's Marina's email address?</div>
+            <div class="options">
+                <div class="option" onclick="checkAnswer(this, 'a) marina.silva@oldtime-toys.com', 'a) marina.silva@oldtime-toys.com', 4)">a) marina.silva@oldtime-toys.com</div>
+                <div class="option" onclick="checkAnswer(this, 'b) marina.silva@oldtime_toys.com', 'a) marina.silva@oldtime-toys.com', 4)">b) marina.silva@oldtime_toys.com</div>
+                <div class="option" onclick="checkAnswer(this, 'c) marina.silva@old-times-toys.com', 'a) marina.silva@oldtime-toys.com', 4)">c) marina.silva@old-times-toys.com</div>
+                <div class="option" onclick="checkAnswer(this, 'd) marina.silva@oldtime.toys.com', 'a) marina.silva@oldtime-toys.com', 4)">d) marina.silva@oldtime.toys.com</div>
+            </div>
+            <div id="feedback4" class="feedback"></div>
+            <div id="explanation4" class="explanation">
+                <p><strong>Explanation:</strong> Marina spells: "Marina ... dot Silva ... at O-L-D-T-I-M-E hyphen toys dot com" → marina.silva@oldtime-toys.com</p>
+            </div>
+        </div>
+
+        <!-- Q5 -->
+        <div id="question5" class="question-container">
+            <div class="question">5. What does "I look forward to hearing from you" mean?</div>
+            <div class="options">
+                <div class="option" onclick="checkAnswer(this, 'a) Never contact me again', 'b) I expect a reply soon', 5)">a) Never contact me again</div>
+                <div class="option" onclick="checkAnswer(this, 'b) I expect a reply soon', 'b) I expect a reply soon', 5)">b) I expect a reply soon</div>
+                <div class="option" onclick="checkAnswer(this, 'c) I will call you later', 'b) I expect a reply soon', 5)">c) I will call you later</div>
+                <div class="option" onclick="checkAnswer(this, 'd) I don't want to talk to you', 'b) I expect a reply soon', 5)">d) I don't want to talk to you</div>
+            </div>
+            <div id="feedback5" class="feedback"></div>
+            <div id="explanation5" class="explanation">
+                <p><strong>Explanation:</strong> It's a polite way to say you expect a reply — often used at the end of business messages.</p>
+            </div>
+        </div>
+
+        <!-- ---------- New questions 6–20 (increasing difficulty) ---------- -->
+
+        <!-- Q6 -->
+        <div id="question6" class="question-container">
+            <div class="question">6. Where does Marina say she is calling from?</div>
+            <div class="options">
+                <div class="option" onclick="checkAnswer(this, 'a) Old Time Toys', 'a) Old Time Toys', 6)">a) Old Time Toys</div>
+                <div class="option" onclick="checkAnswer(this, 'b) New Time Company', 'a) Old Time Toys', 6)">b) New Time Company</div>
+                <div class="option" onclick="checkAnswer(this, 'c) Old Toy Store', 'a) Old Time Toys', 6)">c) Old Toy Store</div>
+                <div class="option" onclick="checkAnswer(this, 'd) Time & Toys Ltd.', 'a) Old Time Toys', 6)">d) Time & Toys Ltd.</div>
+            </div>
+            <div id="feedback6" class="feedback"></div>
+            <div id="explanation6" class="explanation">
+                <p><strong>Explanation:</strong> Marina introduces herself: "this is Marina Silva calling from Old Time Toys."</p>
+            </div>
+        </div>
+
+        <!-- Q7 -->
+        <div id="question7" class="question-container">
+            <div class="question">7. Which word best describes Alex's relationship to John?</div>
+            <div class="options">
+                <div class="option" onclick="checkAnswer(this, 'a) Colleague', 'a) Colleague', 7)">a) Colleague</div>
+                <div class="option" onclick="checkAnswer(this, 'b) Customer', 'a) Colleague', 7)">b) Customer</div>
+                <div class="option" onclick="checkAnswer(this, 'c) Manager', 'a) Colleague', 7)">c) Manager</div>
+                <div class="option" onclick="checkAnswer(this, 'd) Friend', 'a) Colleague', 7)">d) Friend</div>
+            </div>
+            <div id="feedback7" class="feedback"></div>
+            <div id="explanation7" class="explanation">
+                <p><strong>Explanation:</strong> Marina calls Alex "your colleague Alex", so Alex is a colleague of John.</p>
+            </div>
+        </div>
+
+        <!-- Q8 -->
+        <div id="question8" class="question-container">
+            <div class="question">8. What does Marina ask John to do when he is back in the office?</div>
+            <div class="options">
+                <div class="option" onclick="checkAnswer(this, 'a) Call her', 'a) Call her', 8)">a) Call her</div>
+                <div class="option" onclick="checkAnswer(this, 'b) Send a text', 'a) Call her', 8)">b) Send a text</div>
+                <div class="option" onclick="checkAnswer(this, 'c) Visit their office', 'a) Call her', 8)">c) Visit their office</div>
+                <div class="option" onclick="checkAnswer(this, 'd) Call Alex', 'a) Call her', 8)">d) Call Alex</div>
+            </div>
+            <div id="feedback8" class="feedback"></div>
+            <div id="explanation8" class="explanation">
+                <p><strong>Explanation:</strong> She says: "Could you please call me when you are back in the office?" — she requests a phone call.</p>
+            </div>
+        </div>
+
+        <!-- Q9 -->
+        <div id="question9" class="question-container">
+            <div class="question">9. Which of these items did Marina request John to email?</div>
+            <div class="options">
+                <div class="option" onclick="checkAnswer(this, 'a) His resume', 'b) New brochure and prices', 9)">a) His resume</div>
+                <div class="option" onclick="checkAnswer(this, 'b) New brochure and prices', 'b) New brochure and prices', 9)">b) New brochure and prices</div>
+                <div class="option" onclick="checkAnswer(this, 'c) The company invoice', 'b) New brochure and prices', 9)">c) The company invoice</div>
+                <div class="option" onclick="checkAnswer(this, 'd) A meeting agenda', 'b) New brochure and prices', 9)">d) A meeting agenda</div>
+            </div>
+            <div id="feedback9" class="feedback"></div>
+            <div id="explanation9" class="explanation">
+                <p><strong>Explanation:</strong> Marina asks John to email "your new brochure and information about your prices."</p>
+            </div>
+        </div>
+
+        <!-- Q10 -->
+        <div id="question10" class="question-container">
+            <div class="question">10. What is the MAIN purpose of Marina's voicemail?</div>
+            <div class="options">
+                <div class="option" onclick="checkAnswer(this, 'a) Make a complaint', 'b) Request information', 10)">a) Make a complaint</div>
+                <div class="option" onclick="checkAnswer(this, 'b) Request information', 'b) Request information', 10)">b) Request information</div>
+                <div class="option" onclick="checkAnswer(this, 'c) Confirm a delivery', 'b) Request information', 10)">c) Confirm a delivery</div>
+                <div class="option" onclick="checkAnswer(this, 'd) Cancel an order', 'b) Request information', 10)">d) Cancel an order</div>
+            </div>
+            <div id="feedback10" class="feedback"></div>
+            <div id="explanation10" class="explanation">
+                <p><strong>Explanation:</strong> The message is primarily to request information about new products and prices.</p>
+            </div>
+        </div>
+
+        <!-- Q11 -->
+        <div id="question11" class="question-container">
+            <div class="question">11. Choose the best synonym for "colleague" used in the voicemail.</div>
+            <div class="options">
+                <div class="option" onclick="checkAnswer(this, 'a) Boss', 'b) Coworker', 11)">a) Boss</div>
+                <div class="option" onclick="checkAnswer(this, 'b) Coworker', 'b) Coworker', 11)">b) Coworker</div>
+                <div class="option" onclick="checkAnswer(this, 'c) Stranger', 'b) Coworker', 11)">c) Stranger</div>
+                <div class="option" onclick="checkAnswer(this, 'd) Customer', 'b) Coworker', 11)">d) Customer</div>
+            </div>
+            <div id="feedback11" class="feedback"></div>
+            <div id="explanation11" class="explanation">
+                <p><strong>Explanation:</strong> "Colleague" and "coworker" mean the same — someone you work with.</p>
+            </div>
+        </div>
+
+        <!-- Q12 -->
+        <div id="question12" class="question-container">
+            <div class="question">12. Which phrase indicates Marina expects a reply rather than immediate help?</div>
+            <div class="options">
+                <div class="option" onclick="checkAnswer(this, 'a) \"I'm not here\"', 'c) \"I look forward to hearing from you\"', 12)">a) "I'm not here"</div>
+                <div class="option" onclick="checkAnswer(this, 'b) \"Your colleague Alex\"', 'c) \"I look forward to hearing from you\"', 12)">b) "Your colleague Alex"</div>
+                <div class="option" onclick="checkAnswer(this, 'c) \"I look forward to hearing from you\"', 'c) \"I look forward to hearing from you\"', 12)">c) "I look forward to hearing from you"</div>
+                <div class="option" onclick="checkAnswer(this, 'd) \"Please leave a message\"', 'c) \"I look forward to hearing from you\"', 12)">d) "Please leave a message"</div>
+            </div>
+            <div id="feedback12" class="feedback"></div>
+            <div id="explanation12" class="explanation">
+                <p><strong>Explanation:</strong> That phrase signals she wants a response from John in the future.</p>
+            </div>
+        </div>
+
+        <!-- Q13 -->
+        <div id="question13" class="question-container">
+            <div class="question">13. Vocabulary: What does "brochure" mean?</div>
+            <div class="options">
+                <div class="option" onclick="checkAnswer(this, 'a) A short printed booklet with info', 'a) A short printed booklet with info', 13)">a) A short printed booklet with info</div>
+                <div class="option" onclick="checkAnswer(this, 'b) A long legal contract', 'a) A short printed booklet with info', 13)">b) A long legal contract</div>
+                <div class="option" onclick="checkAnswer(this, 'c) A phone app', 'a) A short printed booklet with info', 13)">c) A phone app</div>
+                <div class="option" onclick="checkAnswer(this, 'd) A video advertisement', 'a) A short printed booklet with info', 13)">d) A video advertisement</div>
+            </div>
+            <div id="feedback13" class="feedback"></div>
+            <div id="explanation13" class="explanation">
+                <p><strong>Explanation:</strong> A brochure is a small printed booklet or leaflet with information about products or services.</p>
+            </div>
+        </div>
+
+        <!-- Q14 -->
+        <div id="question14" class="question-container">
+            <div class="question">14. Language in context: Why does Marina spell her email and name?</div>
+            <div class="options">
+                <div class="option" onclick="checkAnswer(this, 'a) To be polite', 'b) To avoid mistakes', 14)">a) To be polite</div>
+                <div class="option" onclick="checkAnswer(this, 'b) To avoid mistakes', 'b) To avoid mistakes', 14)">b) To avoid mistakes</div>
+                <div class="option" onclick="checkAnswer(this, 'c) Because she likes spelling', 'b) To avoid mistakes', 14)">c) Because she likes spelling</div>
+                <div class="option" onclick="checkAnswer(this, 'd) To ask for help', 'b) To avoid mistakes', 14)">d) To ask for help</div>
+            </div>
+            <div id="feedback14" class="feedback"></div>
+            <div id="explanation14" class="explanation">
+                <p><strong>Explanation:</strong> Spelling prevents errors when providing contact details (email/name) over the phone.</p>
+            </div>
+        </div>
+
+        <!-- Q15 -->
+        <div id="question15" class="question-container">
+            <div class="question">15. Listening detail: Which of these sequences DID Marina say when giving her number?</div>
+            <div class="options">
+                <div class="option" onclick="checkAnswer(this, 'a) 6-5-5-7-6-2-1', 'a) 6-5-5-7-6-2-1', 15)">a) 6-5-5-7-6-2-1</div>
+                <div class="option" onclick="checkAnswer(this, 'b) 6-5-5-2-7-6-1', 'a) 6-5-5-7-6-2-1', 15)">b) 6-5-5-2-7-6-1</div>
+                <div class="option" onclick="checkAnswer(this, 'c) 6-5-6-7-6-2-1', 'a) 6-5-5-7-6-2-1', 15)">c) 6-5-6-7-6-2-1</div>
+                <div class="option" onclick="checkAnswer(this, 'd) 6-5-5-7-2-6-1', 'a) 6-5-5-7-6-2-1', 15)">d) 6-5-5-7-2-6-1</div>
+            </div>
+            <div id="feedback15" class="feedback"></div>
+            <div id="explanation15" class="explanation">
+                <p><strong>Explanation:</strong> The spoken digits were clearly: 6-5-5-7-6-2-1.</p>
+            </div>
+        </div>
+
+        <!-- Q16 -->
+        <div id="question16" class="question-container">
+            <div class="question">16. Inference: What can you infer about Marina's reason for contacting John?</div>
+            <div class="options">
+                <div class="option" onclick="checkAnswer(this, 'a) She wants to buy products', 'b) She needs information for business', 16)">a) She wants to buy products</div>
+                <div class="option" onclick="checkAnswer(this, 'b) She needs information for business', 'b) She needs information for business', 16)">b) She needs information for business</div>
+                <div class="option" onclick="checkAnswer(this, 'c) She is a friend asking personal questions', 'b) She needs information for business', 16)">c) She is a friend asking personal questions</div>
+                <div class="option" onclick="checkAnswer(this, 'd) She wants a job from John', 'b) She needs information for business', 16)">d) She wants a job from John</div>
+            </div>
+            <div id="feedback16" class="feedback"></div>
+            <div id="explanation16" class="explanation">
+                <p><strong>Explanation:</strong> Marina is calling from a company and asks for product and price information — this is business-related.</p>
+            </div>
+        </div>
+
+        <!-- Q17 -->
+        <div id="question17" class="question-container">
+            <div class="question">17. Tone / Register: Which phrase is the most formal in Marina's message?</div>
+            <div class="options">
+                <div class="option" onclick="checkAnswer(this, 'a) \"Hi, John\"', 'c) \"I look forward to hearing from you\"', 17)">a) "Hi, John"</div>
+                <div class="option" onclick="checkAnswer(this, 'b) \"Your colleague Alex\"', 'c) \"I look forward to hearing from you\"', 17)">b) "Your colleague Alex"</div>
+                <div class="option" onclick="checkAnswer(this, 'c) \"I look forward to hearing from you\"', 'c) \"I look forward to hearing from you\"', 17)">c) "I look forward to hearing from you"</div>
+                <div class="option" onclick="checkAnswer(this, 'd) \"Thanks a lot\"', 'c) \"I look forward to hearing from you\"', 17)">d) "Thanks a lot"</div>
+            </div>
+            <div id="feedback17" class="feedback"></div>
+            <div id="explanation17" class="explanation">
+                <p><strong>Explanation:</strong> "I look forward to hearing from you" is a formal, polite closing often used in business messages.</p>
+            </div>
+        </div>
+
+        <!-- Q18 -->
+        <div id="question18" class="question-container">
+            <div class="question">18. Detail + inference: If John cannot help Marina, what is the best next step for him to do?</div>
+            <div class="options">
+                <div class="option" onclick="checkAnswer(this, 'a) Ignore the voicemail', 'b) Call Marina back and explain', 18)">a) Ignore the voicemail</div>
+                <div class="option" onclick="checkAnswer(this, 'b) Call Marina back and explain', 'b) Call Marina back and explain', 18)">b) Call Marina back and explain</div>
+                <div class="option" onclick="checkAnswer(this, 'c) Tell Alex not to share numbers', 'b) Call Marina back and explain', 18)">c) Tell Alex not to share numbers</div>
+                <div class="option" onclick="checkAnswer(this, 'd) Email Marina a joke', 'b) Call Marina back and explain', 18)">d) Email Marina a joke</div>
+            </div>
+            <div id="feedback18" class="feedback"></div>
+            <div id="explanation18" class="explanation">
+                <p><strong>Explanation:</strong> She requested a call back to discuss product info — even if he can't help, a polite call explaining and possibly giving a referral is appropriate.</p>
+            </div>
+        </div>
+
+        <!-- Q19 -->
+        <div id="question19" class="question-container">
+            <div class="question">19. Practical language: Which phrase could John use to reply politely to Marina's request by email?</div>
+            <div class="options">
+                <div class="option" onclick="checkAnswer(this, 'a) \"Here are the details you asked for\"', 'a) \"Here are the details you asked for\"', 19)">a) "Here are the details you asked for"</div>
+                <div class="option" onclick="checkAnswer(this, 'b) \"Send money now\"', 'a) \"Here are the details you asked for\"', 19)">b) "Send money now"</div>
+                <div class="option" onclick="checkAnswer(this, 'c) \"Stop calling\"', 'a) \"Here are the details you asked for\"', 19)">c) "Stop calling"</div>
+                <div class="option" onclick="checkAnswer(this, 'd) \"I will not reply\"', 'a) \"Here are the details you asked for\"', 19)">d) "I will not reply"</div>
+            </div>
+            <div id="feedback19" class="feedback"></div>
+            <div id="explanation19" class="explanation">
+                <p><strong>Explanation:</strong> A polite, helpful email begins by referring to the request and providing the requested information.</p>
+            </div>
+        </div>
+
+        <!-- Q20 -->
+        <div id="question20" class="question-container">
+            <div class="question">20. Higher-level inference: Which TWO actions most closely match Marina's next expectation? (Pick the best single option that summarizes both)</div>
+            <div class="options">
+                <div class="option" onclick="checkAnswer(this, 'a) Call John; ask about Alex', 'c) Contact John and receive product details', 20)">a) Call John; ask about Alex</div>
+                <div class="option" onclick="checkAnswer(this, 'b) Wait for Alex to call', 'c) Contact John and receive product details', 20)">b) Wait for Alex to call</div>
+                <div class="option" onclick="checkAnswer(this, 'c) Contact John and receive product details', 'c) Contact John and receive product details', 20)">c) Contact John and receive product details</div>
+                <div class="option" onclick="checkAnswer(this, 'd) Send a legal notice', 'c) Contact John and receive product details', 20)">d) Send a legal notice</div>
+            </div>
+            <div id="feedback20" class="feedback"></div>
+            <div id="explanation20" class="explanation">
+                <p><strong>Explanation:</strong> She expects John to contact her and to receive info (brochure + prices). The best summary is to contact John and get product details.</p>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button id="next-btn" class="btn next" onclick="nextQuestion()" disabled>Next</button>
+            <button id="restart-btn" class="btn restart" onclick="restartQuiz()" style="display:none;">Restart Quiz</button>
+        </div>
+
+        <!-- Score -->
+        <div id="score-container" class="score-container">
+            <h2>Quiz Completed!</h2>
+            <div class="score-big"><span id="score">0</span> / <span id="total">20</span></div>
+            <p id="percentage">0%</p>
+            <p style="color:var(--muted)">Well done — you can restart and try again to improve your score!</p>
+            <div style="margin-top:12px;">
+                <button class="btn restart" onclick="restartQuiz()">Restart Quiz</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // Quiz logic
+    let currentQuestion = 1;
+    const totalQuestions = 20;
+    let score = 0;
+    let answered = false;
+
+    // Update UI elements that show totals
+    document.getElementById('total-questions').textContent = totalQuestions;
+    document.getElementById('total').textContent = totalQuestions;
+    document.getElementById('current-question').textContent = currentQuestion;
+    updateProgress();
+
+    // Main answer check function
+    function checkAnswer(selectedElement, selectedOption, correctAnswer, questionNum) {
+        if (answered) return;
+        answered = true;
+
+        // Find options container
+        const container = selectedElement.parentElement;
+        const options = container.querySelectorAll('.option');
+
+        // Mark selected
+        selectedElement.classList.add('selected');
+
+        // Highlight correct and wrong answers
+        options.forEach(opt => {
+            const text = opt.textContent.trim();
+            if (text === correctAnswer) {
+                opt.classList.add('correct-answer');
+            } else if (opt !== selectedElement) {
+                opt.classList.add('wrong-answer');
+            }
+        });
+
+        // Feedback
+        const feedbackEl = document.getElementById(`feedback${questionNum}`);
+        if (!feedbackEl) return;
+
+        if (selectedOption === correctAnswer) {
+            feedbackEl.classList.add('correct');
+            feedbackEl.innerHTML = '✅ CORRECT — ' + selectedOption;
+            score++;
+        } else {
+            feedbackEl.classList.add('incorrect');
+            feedbackEl.innerHTML = '❌ INCORRECT — You selected: ' + selectedOption + '<br>Correct answer: <strong>' + correctAnswer + '</strong>';
+        }
+
+        // Show explanation
+        const expl = document.getElementById(`explanation${questionNum}`);
+        if (expl) expl.style.display = 'block';
+
+        // Enable Next button
+        document.getElementById('next-btn').disabled = false;
+    }
+
+    function nextQuestion() {
+        // Reset answered state
+        answered = false;
+        // Hide current
+        const curr = document.getElementById(`question${currentQuestion}`);
+        if (curr) {
+            curr.classList.remove('visible');
+            // small delay to allow transition
+            setTimeout(() => {
+                if (curr) curr.style.display = 'none';
+            }, 260);
+        }
+
+        // Move to next or finish
+        if (currentQuestion < totalQuestions) {
+            currentQuestion++;
+            const next = document.getElementById(`question${currentQuestion}`);
+            if (next) {
+                next.style.display = 'block';
+                // force reflow for transition
+                void next.offsetWidth;
+                next.classList.add('visible');
+            }
+            // Update UI
+            document.getElementById('current-question').textContent = currentQuestion;
+            document.getElementById('next-btn').disabled = true;
+            updateProgress();
+        } else {
+            // Show score
+            showScore();
+        }
+    }
+
+    function updateProgress(){
+        const fill = document.getElementById('progress-fill');
+        const pct = Math.round(((currentQuestion - 1) / totalQuestions) * 100);
+        if (fill) fill.style.width = pct + '%';
+    }
+
+    function showScore(){
+        // hide quiz card content
+        document.getElementById('quizCard').style.display = 'none';
+        // show score container
+        const sc = document.getElementById('score-container');
+        sc.style.display = 'block';
+        document.getElementById('score').textContent = score;
+        const percentage = Math.round((score / totalQuestions) * 100);
+        document.getElementById('percentage').textContent = percentage + '%';
+        // show restart
+        const restartBtn = document.getElementById('restart-btn');
+        if (restartBtn) restartBtn.style.display = 'inline-block';
+    }
+
+    function restartQuiz(){
+        // Reset variables
+        currentQuestion = 1;
+        score = 0;
+        answered = false;
+
+        // Reset UI
+        document.getElementById('current-question').textContent = currentQuestion;
+        document.getElementById('total-questions').textContent = totalQuestions;
+        document.getElementById('total').textContent = totalQuestions;
+        document.getElementById('progress-fill').style.width = '0%';
+
+        // Hide all question containers except first
+        for (let i=1; i<= totalQuestions; i++){
+            const q = document.getElementById(`question${i}`);
+            if (q) {
+                q.style.display = 'none';
+                q.classList.remove('visible');
+            }
+            const fb = document.getElementById(`feedback${i}`);
+            if (fb) {
+                fb.innerHTML = '';
+                fb.classList.remove('correct','incorrect');
+            }
+            const expl = document.getElementById(`explanation${i}`);
+            if (expl) expl.style.display = 'none';
+
+            // reset option classes
+            const opts = document.querySelectorAll(`#question${i} .option`);
+            opts.forEach(opt => {
+                opt.classList.remove('selected', 'correct-answer', 'wrong-answer');
+            });
+        }
+
+        // show first question
+        const first = document.getElementById('question1');
+        if (first) {
+            first.style.display = 'block';
+            void first.offsetWidth;
+            first.classList.add('visible');
+        }
+        document.getElementById('next-btn').disabled = true;
+
+        // show quiz card, hide score
+        document.getElementById('quizCard').style.display = 'block';
+        document.getElementById('score-container').style.display = 'none';
+        const restartBtn = document.getElementById('restart-btn');
+        if (restartBtn) restartBtn.style.display = 'none';
+    }
+
+    // Initialize: make sure only Q1 visible
+    (function init(){
+        for (let i=1; i<= totalQuestions; i++){
+            const q = document.getElementById(`question${i}`);
+            if (!q) continue;
+            if (i === 1){
+                q.style.display = 'block';
+                q.classList.add('visible');
+            } else {
+                q.style.display = 'none';
+            }
+        }
+    })();
+
+    // Accessibility: allow Enter key to progress after answering
+    document.addEventListener('keydown', function(e){
+        if (e.key === 'Enter') {
+            const nextBtn = document.getElementById('next-btn');
+            if (nextBtn && !nextBtn.disabled) {
+                nextQuestion();
+            }
+        }
+    });
+
+</script>
+</body>
+</html>
